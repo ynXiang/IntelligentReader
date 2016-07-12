@@ -1,0 +1,737 @@
+ <!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html"; charset="utf-8"> 
+<script src="js/d3.v3.min.js" charset="utf-8"></script>
+<script src="js/ajax.js"></script>
+<script src="js/event-0.6.js"></script>
+<script src="js/d3.layout.cloud.js"></script>
+<title> VarifocalReader Part1</title>
+
+   
+<script>
+window.onload = function() {
+     
+    var container = document.getElementById('line');  
+    var menu = document.getElementById('menu');
+     
+    /*Show menu*/
+    function showMenu() {
+ 
+        var evt = window.event || arguments[0];
+         
+        /*Get the postion of the mouse*/
+        var rightedge = container.style.left+container.width-evt.clientX;
+        var bottomedge = container.style.top+container.height-evt.clientY;
+ 
+        /*If the distance between the position of the mouse and the right edge of the container, move the menu left with the length of the menu.*/
+        if (rightedge < menu.offsetWidth)
+            menu.style.left = evt.clientX - menu.offsetWidth + "px";            
+        else
+        /*Otherwise, set the position of the menu as the one of the mouse.*/
+            menu.style.left = evt.clientX + "px";
+         
+        /*If the distance between the position of the mouse and the bottom edge of the container, move the menu top with the height of the menu.*/
+        if (bottomedge < menu.offsetHeight)
+            menu.style.top = evt.clientY - menu.offsetHeight + "px";
+        else
+        /*Otherwise, set the position of the menu as the one of the mouse.*/
+            menu.style.top = evt.clientY + "px";
+             
+        /*Show the menu*/ 
+	menu.style.visibility = "visible"; 
+	E.on(menu, "contextmenu", function(){}, {stopEvent: true})
+    }		 
+    
+    /*Hide the menu*/ 
+    function hideMenu() { 
+	menu.style.visibility = 'hidden'; 
+    } 
+    E.on(container, "contextmenu", function(){}, {stopEvent: true});
+    E.on(container, "contextmenu",showMenu);
+    E.on(document, "click", hideMenu);                   
+}
+
+</script>
+</head>	
+
+<style type="text/css">
+        .skin {
+            width : 100px;
+            //border : 1px solid gray;
+            padding : 2px;
+            visibility : hidden;
+            position : absolute;
+			z-index: 2;
+        }
+        div.menuitems {
+            margin : 1px 0;
+        }
+        div.menuitems a {
+            text-decoration : none;
+        }
+        div.menuitems:hover {
+            background-color : #c0c0c0;
+        }
+</style>
+
+<body>
+    <form  action="后端接口" enctype="multipart/form-data" method="post" id="attachment_uploads">
+        <div class="attachs fl">
+			<div class="t_fjfont">附件:</div>
+			<div class="upload_btns"><input type="file" name="file" id="fileID" onchange="fileChange(this,1);" /></div>
+			<div class="upload_btns"><input type="file" name="file" id="fileID" onchange="fileChange(this,2);" /></div>
+			<div class="t_fjfont" style="color:red;font-size:12px;font-weight:bold">文件上限1MB</div>
+        </div>
+    </form> 
+	<p>选择这段文字</p>
+	<button type="button" onclick=highlight(1,getSelectText())>查看选中文字</button>
+	<p>请不要选择具有重叠部分</p>
+	<p>的高亮区域</p>
+	<p>请勿跨段落高亮</p>
+	
+	<div id="menu" class="skin">
+        <div class="menuitems">
+            <button type="button" onclick=menushow()>Select Attr. & Highlight</button>
+			<button type="button" onclick=highlight(-1,getSelectText())>Cancel highlight</button>
+			<button type="button" onclick=highlight(1,getSelectText())>Add to word cloud</button>
+        </div>
+    </div>
+</body>
+	
+	
+<script>
+	//Set a data window.
+	var padding = 5, width = 300, height = 400, max_height = 700000; //Elementary data
+	
+	// chapter part
+	var First = document.createElement("div");
+		First.setAttribute("style","background:#FFFFFF;position:absolute;overflow:auto;width:"+(width+padding*4)+"px;height:"+(height+padding*2)+"px;border:solid 3px #000000;z-index:1;");
+		First.style.top = 30+"px";
+		First.style.left = 200+"px";
+		First.id = "chap";
+		document.body.appendChild(First);
+		
+	var	svg1 = d3.select("#chap")
+			.append("svg")
+			.attr("width", width+padding*2)
+			.attr("height", height);
+	var	container1 = svg1.append("g")
+			.attr("transform", "translate("+padding+",0)");
+
+	// Add hltables and text
+	var chap_pos = []; // Text_position
+	var chap_hl = []; // Rectangles
+	var chap_hlt = []; // Texts
+	var hl_height = 10; // The height of red rectangles
+	var lines_in_screen = 25; // Number of lines can be shown in a screen in line part.
+	var chap_already = false;
+
+	// Initialize the chapter part
+	var rects;
+	var texts;
+	var init_over = 0;
+
+	// Initialize the word cloud part
+	var word_cl; // Input word clouds
+	var word_str = []; // word clouds for each Chap.
+	var all_word_cl; // all word clouds
+    var word_num = []; // Requested No. of word clouds
+	var word_cl_already = false;
+	var word_input_num = 20; // Input number from the text files for each Chap.
+	var word_init_num = 10;  // Set number for each Chap.
+	var chap_height = 120;
+	var word_cl_count = 0;
+	var rect_interval = []; // Intervals between two adjacent word clouds
+	var text_chap = []; // Symbol of chapters
+
+	// Set colors;
+	var fill = d3.scale.category20();
+
+	// word clouds part
+	var Second = document.createElement("div");
+		Second.setAttribute("style","background:#FFFFFF;position:absolute;overflow:auto;width:"+(width+padding*4)+"px;height:"+(height+padding*2)+"px;border:solid 3px #000000;z-index:1;");
+		Second.style.top = 30+"px";
+		Second.style.left = (200+width+padding*4+10)+"px";
+		Second.id = "wordclouds";
+		document.body.appendChild(Second);
+		
+	var	svg2 = d3.select("#wordclouds")
+			.append("svg")
+			.attr("width", width+padding*2)
+			.attr("height", height*5+padding*2)
+			.append("g")	
+	//var	container2 = svg2.append("g")
+			.attr("transform", "translate(" + (width/2) + "," + (padding+chap_height/2) + ")");
+
+	// line part
+	var Third = document.createElement("div");
+		Third.setAttribute("style","background:#FFFFFF;position:absolute;overflow:auto;width:"+(width+padding*4)+"px;height:"+(height+padding*2)+"px;border:solid 3px #000000;z-index:1;");
+		Third.style.top = 30+"px";
+		Third.style.left = (200+width*2+padding*8+20)+"px";
+		Third.id = "line";
+		document.body.appendChild(Third);
+		
+	var	svg3 = d3.select("#line")
+			.append("svg")
+			.attr("width", width+padding*2)
+			.attr("height", max_height);
+	var	container3 = svg3.append("g")
+			.attr("transform", "translate("+padding+",0)");
+	
+	// menu data
+	var menu_width = 250;
+	var menu_height = 280;
+	var menu_hlstr = "";
+
+	// menu
+	var menu = document.createElement("div");
+		menu.setAttribute("style","background:#FFFFFF;display:none;position:absolute;width:"+(2*padding+menu_width)+"px;height:"+(menu_height)+"px;border:solid 1px #000000;z-index:100;");
+		menu.style.top = 50+"px";
+		menu.style.left = 50+"px";
+		menu.id = "menuattr";
+
+	var menu_cancel = document.createElement("input");
+	menu_cancel.setAttribute("style","position:absolute;left:175px;top:250px");
+	menu_cancel.type="button";
+	menu_cancel.value="Cancel";
+	menu_cancel.onclick= menucancel();
+	menu.appendChild(menu_cancel);
+	document.body.appendChild(menu);
+
+	var	svg4 = d3.select("#menuattr")
+			.append("svg")
+			.attr("width", 2*padding+menu_width)
+			.attr("height", menu_height)
+			.attr("transform", "translate("+padding+","+padding+")");
+
+	// Add select pie.
+	var dataset = [1,1,1,1];
+	var pie = d3.layout.pie();
+	var piedata = pie(dataset);
+	piedata[0].data = "Noun";
+	piedata[1].data = "Verb";
+	piedata[2].data = "Adj./Adv.";
+	piedata[3].data = "Others";
+	var outerRadius = 125;
+	var innerRadius = 0;
+	var arc = d3.svg.arc()
+				.innerRadius(innerRadius)
+				.outerRadius(outerRadius);
+	var arcs = svg4.selectAll("g")
+				  .data(piedata)
+				  .enter()
+				  .append("g")
+				  .attr("transform","translate("+ (menu_width/2) +","+ (menu_width/2) +")");
+	arcs.append("path")
+		.attr("fill",function(d,i){
+			return fill(i);
+		})
+		.attr("d",function(d){
+			return arc(d);
+		})
+		.on("click",function(d,i){
+			highlight(i,menu_hlstr);
+			menucancel();
+		});
+	arcs.append("text")
+		.attr("transform",function(d){
+			return "translate(" + arc.centroid(d) + ")";
+		})
+		.attr("text-anchor","middle")
+		.text(function(d){
+			return d.data;
+		});
+
+	//Choose the text
+	function getSelectText(){
+	  try{
+		return window.getSelection().toString();
+	  }catch(e){
+		return document.selection.createRange().text;
+	  }
+	}
+	
+	//Highlight the text
+	var HL = []; //Array of highlight words
+	var hlnum; // Num. of each highlight word
+	var total_hlnum = 0;
+	
+	function highlight(color,hlstr){
+console.log(color,hlstr);
+		var hlwordorigin = hlstr;
+		var hlword = "";
+		for (i=0;i<hlwordorigin.length;i++){
+			if (hlwordorigin.charCodeAt(i) != 10){
+				hlword += hlwordorigin[i];
+			}
+		}
+		var colororigin = -1;
+		var exist = 0;
+		for (i=0;i<HL.length;i++){
+			if (HL[i][0] == hlword){
+				exist = 1;
+				colororigin = HL[i][2];
+				if (color == HL[i][2]) return;
+				else if (color == -1) HL.splice(i,1);
+				else HL[i][2] = color;
+				break;
+			}
+		}
+		if (color == -1 && exist == 0) return;
+		var cont = 0;
+		hlnum = 0;
+		//var color = "RGB("+(255*Math.random())+","+(255*Math.random())+","+(255*Math.random())+")";
+		mulText.transition()
+			.duration(500)
+			.style("fill",function(d,i){
+				if (cont == 0){
+					if (strs[i][0] == hlword[0]){
+						cont++;
+						for (j=1;j<hlword.length;j++){
+							if (i+j < strs.length){
+								if (strs[i+j][0] == hlword[j]) cont++;
+								else{
+									cont = 0;
+									break;
+								}
+							}
+							else{
+								cont = 0;
+								break;
+							}
+						}
+						if (cont > 0){
+							hlnum++;
+							for (j=0;j<chap.length;j++){
+								if (d[2] <= chap[j][0]){
+									if (color >= 0){
+										chap[j][1][color]++;
+										if (exist) chap[j][1][colororigin]--;
+										else total_hlnum++;
+									}
+									else{
+										chap[j][1][colororigin]--;
+										total_hlnum--;
+									}
+									break;
+								}
+							}
+						}
+					}
+				}
+				if (cont > 0){
+					cont--;
+					if (color == -1) d[3] = "black";
+					else d[3] = fill(color);
+				}
+				return d[3];
+		});
+		console.log("total_hlnum =", total_hlnum);
+		set_chap_data(0);
+		rects.data(chap_hl)
+			.transition()
+			.duration(2000)
+			.attr("width",function(d){
+				return d[2];
+			});
+		texts.data(chap_hlt)
+			.transition()
+			.duration(2000)
+			.attr("x",function(d){
+				return d[0];
+			})
+			.text(function(d){
+				return d[2];
+			})
+			.attr("fill",function(d){
+				if (d[2]==0) return "white";
+				else return "balck";
+			});
+		if (!exist) HL.push([hlword, hlnum, color]);
+		if (hlnum == 0) alert("Wrong highlight range!");
+	}
+
+	//Load the text
+	var mulText = container3.selectAll("text"); // Text in line part
+	var strs = []; // The splitted string
+	var chap = []; // The chapters
+  
+	function fileChange(target,button){
+		var fileSize = 0;
+		fileSize = target.files[0].size;
+		var size = fileSize / 1024;
+		if(size>1024){
+		    alert("附件不能大于1M");
+		    target.value="";
+		    return;
+		}
+		var name=target.value;
+		var fileName = name.substring(name.lastIndexOf(".")+1).toLowerCase();
+		if(fileName !="txt"){
+		    alert("请选择txt格式文件x上传！");
+		    target.value="";
+		    return;
+		}
+		//container1.selectAll("rect")  //?????
+		//	.remove();
+		//container1.selectAll("text")
+		//	.remove();
+		//container3.selectAll("text")
+		//	.remove();
+		var reader = new FileReader();//Create a new FileReader
+		reader.readAsText(target.files[0], "gb2312");//Load file 
+		reader.onload = function(evt){ //After loaded
+			var fileString = evt.target.result;
+			console.log(fileString.length);
+			if (button == 1){
+				appendMultiText(container3,fileString,padding,padding,width-2*padding,20,"simsun");
+				chap_already = true;
+			}
+			else if (button == 2){
+				word_cl = fileString.split("\n");
+				word_cl_already = true;
+				set_word_cl();
+				init_word_cl();
+			}
+		}
+		return;
+	} 
+
+	function appendMultiText(container, str, posX, posY, width, fontsize, fontfamily){
+				
+				if( arguments.length < 6){
+					fontsize = 14;
+				}		
+				
+				if( arguments.length < 7){
+					fontfamily = "simsun, arial";
+				}
+				
+				//Get splitted strings
+				strs = splitByWord(str,width,fontsize);
+				
+				mulText = container.selectAll("text")
+					.data(strs)
+					.enter()
+					.append("text")
+					.attr("transform","translate("+posX+","+posY+")")
+					.style("font-size",fontsize)
+					.style("font-family",fontfamily)
+					.attr("x",function(d){
+						return d[1]+"px";
+					})
+					.attr("y",function(d){
+						return d[2]+"em";
+					})
+					.text(function(d){
+						return d[0];
+					});
+				set_chap_data(1);
+				init_chap();
+				return 1;
+				
+	function splitByWord(str,max,fontsize){
+					var curLen = 0;
+					var line = 1;
+					var color = "black";
+					var result = [];
+					for(var i=0;i<str.length;i++){
+						var code = str.charCodeAt(i);
+						var cha = str.charAt(i);
+						var pixelLen = code > 255 ? fontsize : fontsize/2;
+						curLen += pixelLen;
+						if(code == 124) chap.push([line, [0,0,0,0]]);  //line, hightlight_count // Noun, Verb, Adj./Adv., Others
+						else if(curLen <= max && code != 13){
+							result.push([cha, curLen-pixelLen, line, color]);
+						}
+						else{
+							line++;
+							curLen = 0;
+						}
+						if (i == str.length-1) chap.push([line, [0,0,0,0]]);
+					}
+					return result;
+				}
+	}
+
+
+
+function set_chap_data(time){
+	if (time==1){
+		for (i=0;i<chap.length;i++){
+			if (i==0) chap_hl.push([150,padding,150,chap[0][0]/chap[chap.length-1][0]*height-1,"gold"]);
+			else chap_hl.push([150,padding+chap[i-1][0]/chap[chap.length-1][0]*height,150,(chap[i][0]-chap[i-1][0])/chap[chap.length-1][0]*height-1,"gold"]);
+		}
+		for (i=0;i<chap.length;i++){
+			if (i==0){
+				chap_hl.push([0,padding,chap[0][1][0]/(total_hlnum+1)*140,hl_height,fill(0)]);
+				chap_hl.push([0,padding*2+hl_height,chap[0][1][1]/(total_hlnum+1)*140,hl_height,fill(1)]);
+				chap_hl.push([0,padding*3+hl_height*2,chap[0][1][2]/(total_hlnum+1)*140,hl_height,fill(2)]);
+				chap_hl.push([0,padding*4+hl_height*3,chap[0][1][3]/(total_hlnum+1)*140,hl_height,fill(3)]);
+			}
+			else{
+				chap_hl.push([0,padding+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][0]/(total_hlnum+1)*140,hl_height,fill(0)]);
+				chap_hl.push([0,padding*2+hl_height+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][1]/(total_hlnum+1)*140,hl_height,fill(1)]);
+				chap_hl.push([0,padding*3+hl_height*2+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][2]/(total_hlnum+1)*140,hl_height,fill(2)]);
+				chap_hl.push([0,padding*4+hl_height*3+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][3]/(total_hlnum+1)*140,hl_height,fill(3)]);
+			}
+		}
+		for (i=0;i<chap.length;i++){
+			chap_hlt.push([180,chap_hl[i][1]+chap_hl[i][3]/2,"Chapter "+(i+1)]);
+		}
+		for (i=0;i<chap.length;i++){
+			chap_hlt.push([chap[i][1][0]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding+hl_height,String(chap[i][1][0])]);
+			chap_hlt.push([chap[i][1][1]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding*2+hl_height*2,String(chap[i][1][1])]);
+			chap_hlt.push([chap[i][1][2]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding*3+hl_height*3,String(chap[i][1][2])]);
+			chap_hlt.push([chap[i][1][3]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding*4+hl_height*4,String(chap[i][1][3])]);
+		}
+		chap_pos.push([150-padding,0,150+2*padding,lines_in_screen/chap[chap.length-1][0]*height+2*padding,"rgba(255,0,0,0.2)"]);
+	}
+	else{
+		for (i=0;i<chap.length;i++){
+			if (i==0) chap_hl[0]=[150,padding,150,chap[0][0]/chap[chap.length-1][0]*height-1,"gold"];
+			else chap_hl[i]=[150,padding+chap[i-1][0]/chap[chap.length-1][0]*height,150,(chap[i][0]-chap[i-1][0])/chap[chap.length-1][0]*height-1,"gold"];
+		}
+		for (i=0;i<chap.length;i++){
+			if (i==0){
+				chap_hl[chap.length]=[0,padding,chap[0][1][0]/(total_hlnum+1)*140,hl_height,fill(0)];
+				chap_hl[chap.length+1]=[0,padding*2+hl_height,chap[0][1][1]/(total_hlnum+1)*140,hl_height,fill(1)];
+				chap_hl[chap.length+2]=[0,padding*3+hl_height*2,chap[0][1][2]/(total_hlnum+1)*140,hl_height,fill(2)];
+				chap_hl[chap.length+3]=[0,padding*4+hl_height*3,chap[0][1][3]/(total_hlnum+1)*140,hl_height,fill(3)];
+			}
+			else{
+				chap_hl[4*i+chap.length]=[0,padding+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][0]/(total_hlnum+1)*140,hl_height,fill(0)];
+				chap_hl[4*i+chap.length+1]=[0,padding*2+hl_height+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][1]/(total_hlnum+1)*140,hl_height,fill(1)];
+				chap_hl[4*i+chap.length+2]=[0,padding*3+hl_height*2+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][2]/(total_hlnum+1)*140,hl_height,fill(2)];
+				chap_hl[4*i+chap.length+3]=[0,padding*4+hl_height*3+chap[i-1][0]/chap[chap.length-1][0]*height,chap[i][1][3]/(total_hlnum+1)*140,hl_height,fill(3)];
+			}
+		}
+		for (i=0;i<chap.length;i++){
+			chap_hlt[i]=[180,chap_hl[i][1]+chap_hl[i][3]/2,"Chapter "+(i+1)];
+		}
+		for (i=0;i<chap.length;i++){
+			chap_hlt[4*i+chap.length]=[chap[i][1][0]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding+hl_height,String(chap[i][1][0])];
+			chap_hlt[4*i+chap.length+1]=[chap[i][1][1]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding*2+hl_height*2,String(chap[i][1][1])];
+			chap_hlt[4*i+chap.length+2]=[chap[i][1][2]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding*3+hl_height*3,String(chap[i][1][2])];
+			chap_hlt[4*i+chap.length+3]=[chap[i][1][3]/(total_hlnum+1)*140+padding,chap_hl[4*i+chap.length][1]+padding*4+hl_height*4,String(chap[i][1][3])];
+		
+		}
+	}
+}
+
+function init_chap(){
+ 	rects = svg1.selectAll("rects")
+		.data(chap_hl)
+		.enter()
+		.append("rect")
+		.attr("x",function(d){
+			return d[0];
+		})
+		.attr("y",function(d){
+			return d[1];
+		})
+		.attr("width",function(d){
+			return d[2];
+		})
+		.attr("height",function(d){
+			return d[3];
+		})
+		.attr("fill",function(d){
+			return d[4];
+		})
+		.on("click",function(d,i){
+			var num = chap_hl.length;
+			if (i < num/5){
+				var evt = window.event || arguments[0];
+				var delta_y = evt.clientY - parseInt(First.style.top,10);
+				chap_pos[0][1] = delta_y - chap_pos[0][3]/2;
+				if (chap_pos[0][1] < 0) chap_pos[0][1] = 0;
+				rect_pos.transition()  // Highlight rect should be taken apart!!!\
+					//.duration(2000)
+					//.ease("linear")
+					.attr("y",function(d){
+						return d[1];
+					});
+				Third.scrollTop = chap_pos[0][1]*(chap[chap.length-1][0]*20)/height;
+			}   
+		});
+	
+	rect_pos = svg1.selectAll("rect_pos")
+		.data(chap_pos)
+		.enter()
+		.append("rect")
+		.attr("x",function(d){
+			return d[0];
+		})
+		.attr("y",function(d){
+			return d[1];
+		})
+		.attr("width",function(d){
+			return d[2];
+		})
+		.attr("height",function(d){
+			return d[3];
+		})
+		.attr("fill",function(d){
+			return d[4];
+		});
+	
+	texts = svg1.selectAll("texts")
+		.data(chap_hlt)
+		.enter()
+		.append("text")
+		.attr("text-anchor","left")
+		.attr("x",function(d){
+			return d[0];
+		})
+		.attr("y",function(d){
+			return d[1];
+		})
+		.text(function(d){
+			return d[2];
+		})
+		.attr("fill",function(d){
+			if (d[2]==0) return "white";
+			else return "black";
+		})
+	if (init_over == 0) init_over = 1;
+}  
+
+function set_word_cl(){
+	for (i=0;i<chap.length;i++){
+		word_num.push(word_init_num);
+		rect_interval.push([-width/2,(chap_height+35)*(i+0.5)-5,width,5,"green"]); // x,y,width,height,fill
+	    text_chap.push(["Chap. "+(i+1).toString(),width/2-70,(chap_height+35)*(i+0.5)-10]); // text,x,y
+	}
+	if (word_cl_already){
+		for (i=0;i<chap.length;i++){
+			var str = new Array(word_num[i]);
+			for (j=0;j<word_num[i];j++) str[j] = word_cl[i*(word_input_num+1)+j];
+			word_str.push(str);
+		}
+		all_word_cl = new Array(chap.length);
+	}
+}
+
+function init_word_cl(){
+	for (i=0;i<chap.length;i++){
+		var layout = d3.layout.cloud()
+			.size([width, chap_height])
+			.words(word_str[word_cl_count].map(function(d,i) {
+				return {text: d, size: 20-i, test: ""};
+			}))
+			.padding(5)
+			.rotate(0)
+			.font("Impact")
+			.fontSize(function(d) { return d.size; })
+			.on("end", draw);
+		layout.start();
+		word_cl_count++;
+	}
+
+	var word_cl_rect = svg2.selectAll("word_cl_rect")
+		.data(rect_interval)
+		.enter()
+		.append("rect")
+		.attr("transform","translate("+padding+",0)")
+		.attr("x",function(d){
+			return d[0];
+		})
+		.attr("y",function(d){
+			return d[1];
+		})
+		.attr("width",function(d){
+			return d[2];
+		})
+		.attr("height",function(d){
+			return d[3];
+		})
+		.attr("fill",function(d){
+			return d[4];
+		});
+
+	var word_cl_text = svg2.selectAll("word_cl_text")
+		.data(text_chap)
+		.enter()
+		.append("text")
+		.attr("text-anchor","left")
+		.attr("x",function(d){
+			return d[1];
+		})
+		.attr("y",function(d){
+			return d[2];
+		})
+		.attr("fontsize",1)
+		.text(function(d){
+			return d[0];
+		});
+}
+
+function draw(words) {  
+	all_word_cl[word_cl_count] = svg2.selectAll("all_word_cl")
+    	.data(words)
+    	.enter()
+		.append("text")
+    	.style("font-size", function(d) { return d.size + "px"; })
+    	.style("font-family", "Impact")
+		.style("fill", function(d, i) { return fill(i); })
+    	.attr("text-anchor", "middle")
+    	.attr("transform", function(d,i) {
+    		return "translate(" + [d.x, d.y+word_cl_count*(chap_height+35)] + ")";
+    	})
+    	.text(function(d) { return d.text; });
+}
+
+Third.onscroll = function(){
+	if (chap_already){
+		var scrollT3 = Third.scrollTop;
+		if (scrollT3 > (chap[chap.length-1][0]-lines_in_screen+5)*20){
+			Third.scrollTop = (chap[chap.length-1][0]-lines_in_screen+5)*20;
+		}
+		if (init_over){
+		chap_pos[0][1] = scrollT3/(chap[chap.length-1][0]*20)*height;
+		rect_pos.transition()
+			.attr("y",function(d){
+				return d[1];
+			});
+		}
+	}
+}
+
+Second.onscroll = function(){
+	if (word_cl_already){
+		var scrollT2 = Second.scrollTop;
+		if (scrollT2 > (chap_height+35)*(chap.length-1)){
+			Second.scrollTop = (chap_height+35)*(chap.length-1);
+		}
+	}
+/*
+		if (init_over){
+		chap_pos[0][1] = scrollT2/(chap[chap.length-1][0]*20)*height;
+		rect_pos.transition()
+			.attr("y",function(d){
+				return d[1];
+			});
+		}
+	}
+*/
+}
+
+function menushow(){
+	menu_hlstr = getSelectText();
+	var evt = window.event || arguments[0];
+console.log(evt);
+	menu.style.left = evt.clientX-menu_width-2*padding-20;
+	menu.style.display = "";
+}
+
+function menucancel(){
+	menu_hlstr = "";
+	menu.style.display = "none";		
+}
+
+</script>
+
+</html>
+ 
