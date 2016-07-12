@@ -1,2 +1,2 @@
 # varifocalreader
-A project of visualizaiton
+It is a PRP project of visualizaiton.
