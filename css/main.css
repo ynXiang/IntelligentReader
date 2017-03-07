@@ -1,0 +1,36 @@
+	body{
+		background-color: #373737;
+	}
+	.skin {
+		width : 100px;
+		border : 1px solid gray;
+		padding : 2px;
+		visibility : hidden;
+		position : absolute;
+		z-index: 2;
+	}
+	div.menuitems {
+		margin : 1px 0;
+	}
+	div.menuitems a {
+		text-decoration : none;
+	}
+	div.menuitems:hover {
+		background-color : #c0c0c0;
+	}
+	.main_title{
+		color: white;
+		font-size: 35px;
+	}	
+	
+	.axis path,  
+	.axis line{  
+		fill: none;  
+		stroke: black;  
+		shape-rendering: crispEdges;  
+	}  
+	  
+	.axis text {  
+		font-family: sans-serif;  
+		font-size: 11px;  
+	}  
