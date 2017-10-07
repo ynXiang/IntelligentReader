@@ -5,6 +5,9 @@ It is an intelligent reader based on the concept of VarifocalReader.
 
 It use diagrams and charts and their interactions with the corresponding text to help readers to read the long difficult text conveniently and efficiently.
 
+## GUI
+![image](https://github.com/ynXiang/IntelligentReader/blob/master/img/gui.jpg)
+
 ## Browser
 Currently, the website is at least suitable for Chrome.
 
@@ -23,6 +26,6 @@ Add '--allow-file-access-from-files' into Chrome features.
 5. If you want to have a quick view of the effect, just have a try to upload "test_text.txt" and "test_word.txt".
 
 ## Contact
-[ynXiang](https://github.com/ynXiang).
+[ynXiang](https://github.com/ynXiang)
 
 If you have any problems, please feel free to contact me.
