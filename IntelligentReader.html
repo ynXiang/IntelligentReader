@@ -1,0 +1,276 @@
+ <!doctype html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html"; charset="utf-8">
+<title> Intelligent Reader</title>
+ 
+<script src="js/d3.v3.min.js" charset="utf-8"></script>
+<script src="js/ajax.js"></script>
+<script src="js/event-0.6.js"></script>
+<script src="js/d3.layout.cloud.js"></script>
+<script src="js/jquery-3.1.0.min.js"></script>
+<script type="text/javascript" src="js/init.js"></script>
+<script type="text/javascript" src="js/easing.js"></script>
+
+   
+<script>
+window.onload = function() {
+     
+    var container = document.getElementById('line');  
+    var menu = document.getElementById('menu');
+     
+    /*Show line menu*/
+    function showMenu() {
+	if (chap_already){
+        var evt = window.event || arguments[0];
+         
+        /*Get the postion of the mouse*/
+        var rightedge = container.style.left+container.width-evt.clientX;
+        var bottomedge = container.style.top+container.height-evt.clientY;
+ 
+        /*If the distance between the position of the mouse and the right edge of the container, move the menu left with the length of the menu.*/
+        if (rightedge < menu1.offsetWidth)
+            menu1.style.left = evt.clientX - menu1.offsetWidth + "px";            
+        else
+        /*Otherwise, set the position of the menu as the one of the mouse.*/
+            menu1.style.left = evt.clientX + "px";
+         
+        /*If the distance between the position of the mouse and the bottom edge of the container, move the menu top with the height of the menu.*/
+        if (bottomedge < menu1.offsetHeight)
+            menu1.style.top = evt.clientY - menu1.offsetHeight + "px";
+        else
+        /*Otherwise, set the position of the menu as the one of the mouse.*/
+            menu1.style.top = evt.clientY + "px";
+             
+        /*Show the menu*/ 
+	menu1.style.visibility = "visible"; 
+	E.on(menu1, "contextmenu", function(){}, {stopEvent: true})
+	}
+    }		 
+    
+    /*Hide the menu*/ 
+    function hideMenu() { 
+	menu1.style.visibility = 'hidden'; 
+    } 
+    E.on(container, "contextmenu", function(){}, {stopEvent: true});
+    E.on(container, "contextmenu",showMenu);
+    E.on(document, "click", hideMenu);                   
+
+	var container2 = document.getElementById('chap');  
+    var menu2 = document.getElementById('menu2');
+     
+    /*Show chapter menu*/
+    function showMenu2() {
+	if (chap_already){
+        var evt = window.event || arguments[0];
+         
+        /*Get the postion of the mouse*/
+        var rightedge = container2.style.left+container2.width-evt.clientX;
+        var bottomedge = container2.style.top+container2.height-evt.clientY;
+ 
+        /*If the distance between the position of the mouse and the right edge of the container, move the menu left with the length of the menu.*/
+        if (rightedge < menu2.offsetWidth)
+            menu2.style.left = evt.clientX - menu2.offsetWidth + "px";            
+        else
+        /*Otherwise, set the position of the menu as the one of the mouse.*/
+            menu2.style.left = evt.clientX + "px";
+         
+        /*If the distance between the position of the mouse and the bottom edge of the container, move the menu top with the height of the menu.*/
+        if (bottomedge < menu2.offsetHeight)
+            menu2.style.top = evt.clientY - menu2.offsetHeight + "px";
+        else
+        /*Otherwise, set the position of the menu as the one of the mouse.*/
+            menu2.style.top = evt.clientY + "px";
+             
+        /*Show the menu*/ 
+	menu2.style.visibility = "visible"; 
+	E.on(menu2, "contextmenu", function(){}, {stopEvent: true})
+	}
+    }		 
+    
+    /*Hide the menu*/ 
+    function hideMenu2() { 
+	menu2.style.visibility = 'hidden'; 
+    } 
+    E.on(container2, "contextmenu", function(){}, {stopEvent: true});
+    E.on(container2, "contextmenu",showMenu2);
+    E.on(document, "click", hideMenu2);   
+}
+
+</script>
+</head>	
+
+<link media="screen" rel="stylesheet" type="text/css" href="css/jq22.css">
+<link type="text/css" rel="stylesheet" href="css/bootstrap.min.css">
+<link rel="stylesheet" type="text/css" href="css/stylesCode.css">
+<link type="text/css" rel="stylesheet" href="css/main.css">
+
+<body>
+	<div id="menu_body">
+		<p class="main_title" style="position:absolute;left:500px;top:30px">Intelligent Reader</p>
+		<div id="wrapper">
+		  <div id="menu">
+			<ul>
+			  <li> <a class="UTF" href="javascript:void(0);">Upload Text File </a></li>
+			  <li> <a class="UWC" href="javascript:void(0);">Upload Word Clouds</a> </li>
+			  <li> <a id="SWC" href="javascript:void(0);">Save Word Clouds</a> </li>
+			  <li> <a id="H" href="javascript:void(0);">Help</a> </li>
+			  <li> <a id="C" href="javascript:void(0);">Contact</a> </li>
+			  <li> <a id="D" href="download/download.rar">Download</a> </li>
+			</ul>
+		  </div>
+		</div>
+	</div>
+	
+	<div id="left_canvas" class="ovrly18" style="position:absolute;width:440px;height:470px;left:10px;top:170px;z-index:10">
+		<div id="img1"><img src="img/sample1.png" style="width:440px; height:470px;"/></div>
+		<div class="ovrly" onmouseover=img_change(1,true) onmouseout=img_change(1,false)></div>
+		<div id="bt1" class="buttons" style="display:none;font-size:25px" onmouseover=img_change(1,true)>
+			<a class="UTF" href="javascript:void(0);" style="color:#fbb92e">Upload Text File </a>
+		</div>
+	</div>
+	
+	<div id="middle_canvas" class="ovrly02" style="position:absolute;width:440px;height:470px;left:460px;top:170px;z-index:10">
+		<div id="img2"><img src="img/sample2.png" style="width:440px; height:470px;"/></div>
+		<div class="ovrlyL" onmouseover=img_change(2,true) onmouseout=img_change(2,false)></div>
+        <div class="ovrlyR" onmouseover=img_change(2,true) onmouseout=img_change(2,false)></div>
+		<div id="bt2" class="buttons" style="display:none;font-size:25px;width:250px" onmouseover=img_change(2,true)>
+			<a class="UWC" href="javascript:void(0);" style="color:#f8d52f">Upload Word Clouds</a>
+		</div>
+	</div>
+	
+	<div id="right_canvas" class="ovrly16" style="position:absolute;width:440px;height:470px;left:910px;top:170px;z-index:10">
+		<div id="img3"><img src="img/sample3.png" style="width:440px; height:470px;"/></div>
+		<div class="ovrly" onmouseover=img_change(3,true) onmouseout=img_change(3,false)></div>
+		<div id="bt3" class="buttons" style="display:none;font-size:25px" onmouseover=img_change(3,true)>
+			<a class="UTF" href="javascript:void(0);" style="color:#fbb92e">Upload Text File </a>
+		</div>
+	</div>
+	
+	<input type="file" name="file" id="loadfile_1" onchange="fileChange(this,1);" style="display:none" />
+	<input type="file" name="file" id="loadfile_2" onchange="fileChange(this,2);" style="display:none" />
+	<button id="savefile" onclick="wc_save();" style="display:none" /></button>
+	
+	<div id="menu1" class="skin">
+        <div class="menuitems">
+            <button type="button" onclick=menushow()>Select Attr. & Highlight</button>
+			<button type="button" onclick=hl_cancel()>Cancel highlight</button>
+			<button type="button" onclick=add2cloud(getSelectText())>Add to/remove from word cloud</button>
+			<button type="button" onclick=menushow_wd()>Word distribution</button>
+        </div>
+    </div>
+	
+	<div id="menu2" class="skin">
+        <div class="menuitems">
+            <button type="button" onclick=menushow_detail()>Show details</button>
+		</div>
+	</div>
+	
+	<div id="menuattr"></div>
+	
+	<div id="help" style="display:none;position:absolute;width:950px;height:425px;left:190px;top:150px;z-index:20;background:gray;border:5px double black">
+		<br>
+		<p style="font-size:20px;color:white">
+		1. Press the download button to download necessary files. One is "chapter_auto_dividing", another one is "test_text", and the third is "test_word".</br></br>
+		2. Use "chapter_auto_dividing" under linux system to automatically deal with your target text by dividing it into several chapters that can be seen in Intelligent Reader.</br></br>
+		3. Upload the output text and its corresponding word list to Intelligent Reader.</br></br>
+		4. The highlight infomation is shown in the left, the word cloud is shown in the middle, and the text is shown in the right. Press right button on different sections to use further functions.</br></br>
+		5. If you want to have a quick view of the effect, just have a try to upload "test_text.txt" and "test_word.txt".
+		</p>
+		<br>
+		<button onclick=close_help()>Close</button>
+	</div>
+	
+	<div id="contact" style="display:none;position:absolute;width:350px;height:170px;left:500px;top:300px;z-index:20;background:gray;border:5px double black">
+		<br>
+		<p style="font-size:20px;color:white">
+		Name: Yinan XIANG</br></br>
+		Mailbox: yinan_xiang@163.com
+		</p>
+		<br>
+		<button onclick=close_contact()>Close</button>
+	</div>
+</body>
+	
+<script>
+	$(function () {
+		$('.UTF').click(function(){
+			$('#loadfile_1').click();
+		});
+		$('.UWC').click(function(){
+			$('#loadfile_2').click();
+		});
+		$('#SWC').click(function(){
+			$('#savefile').click();
+		});
+		$('#H').click(function(){
+			document.getElementById("help").style.display = "";
+		});
+		$('#C').click(function(){
+			document.getElementById("contact").style.display = "";
+		});
+		$('#D').click(function(){
+		
+		});
+	});
+</script>
+	
+<script type="text/javascript">
+	var first = true;
+	var total_line = 0;
+	
+	//Set a data window.
+	var padding = 5, top_dis = 170, width = 420, height = 460, max_height = 700000; //Elementary data
+</script>	
+
+<script type="text/javascript" src="js/window_init.js"></script>
+
+<script>	
+Third.onscroll = function(){
+	if (chap_already){
+		var scrollT3 = Third.scrollTop;
+		if (scrollT3 > (chap[chap.length-1][0]-lines_in_screen+5)*20){
+			Third.scrollTop = (chap[chap.length-1][0]-lines_in_screen+5)*20;
+		}
+		if (init_over){
+		chap_pos[0][1] = scrollT3/(chap[chap.length-1][0]*20)*height;
+		rect_pos.transition()
+			.attr("y",function(d){
+				return d[1];
+			});
+		}
+	}
+}
+
+Second.onscroll = function(){
+	if (word_cl_already){
+		var scrollT2 = Second.scrollTop;
+		if (scrollT2 > (chap_height+35)*(chap.length-1)){
+			Second.scrollTop = (chap_height+35)*(chap.length-1);
+		}
+	}
+}
+</script>
+
+<script type="text/javascript" src="js/functions/getSelectText.js"></script>
+<script type="text/javascript" src="js/functions/highlight.js"></script>
+<script type="text/javascript" src="js/functions/wc_save.js"></script>
+<script type="text/javascript" src="js/functions/fileChange.js"></script>
+<script type="text/javascript" src="js/functions/appendMultiText.js"></script>
+<script type="text/javascript" src="js/functions/splitByWord.js"></script>
+<script type="text/javascript" src="js/functions/set_chap_data.js"></script>
+<script type="text/javascript" src="js/functions/init_chap.js"></script>
+<script type="text/javascript" src="js/functions/set_word_cl.js"></script>
+<script type="text/javascript" src="js/functions/init_word_cl.js"></script>
+<script type="text/javascript" src="js/functions/add2cloud.js"></script>
+<script type="text/javascript" src="js/functions/draw.js"></script>
+<script type="text/javascript" src="js/functions/menu_op.js"></script>
+<script type="text/javascript" src="js/functions/detail_init.js"></script>
+<script type="text/javascript" src="js/functions/detail_change.js"></script>
+<script type="text/javascript" src="js/functions/hl_cancel.js"></script>
+<script type="text/javascript" src="js/functions/refresh.js"></script>
+<script type="text/javascript" src="js/functions/word_dis.js"></script>
+<script type="text/javascript" src="js/functions/img_change.js"></script>
+
+</html>
+ 
